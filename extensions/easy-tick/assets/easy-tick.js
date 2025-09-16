@@ -16,8 +16,10 @@
     cfg: null,
     offers: [],
     selectedVariantIds: [],
+    uncheckedVariants: [],
     cartCache: null,
     cartCacheAt: 0,
+    LOCAL_STORAGE_UNCHECKED_KEY: "easyTickUncheckedVariants",
 
     init(widgetId) {
       const el = document.getElementById(widgetId);
@@ -35,8 +37,10 @@
         ),
         proxyPath: el.dataset.proxyPath || "/apps/easy-tick/campaigns",
         variantPrices: {},
+        shop: el.dataset.shop || "",
       };
 
+      this.loadUncheckedFromStorage();
       this.collectVariantPrices();
       this.interceptFormSubmissions();
       this.loadCampaigns();
@@ -78,6 +82,8 @@
 
     clearSelections() {
       this.selectedVariantIds = [];
+      this.uncheckedVariants = [];
+      localStorage.removeItem(this.LOCAL_STORAGE_UNCHECKED_KEY);
       if (this.cfg?.el) {
         this.cfg.el.querySelectorAll(".tick-one-checkbox").forEach((cb) => {
           cb.checked = false;
@@ -122,13 +128,14 @@
     },
 
     async loadCampaigns() {
-      const { productId, collectionId, pageType, maxItems, proxyPath } =
+      const { productId, collectionId, pageType, maxItems, proxyPath, shop } =
         this.cfg;
       const qs = new URLSearchParams({
         product_id: productId,
         collection_id: collectionId,
         page_type: pageType,
         max_items: String(maxItems),
+        shop,
       });
       try {
         const res = await fetch(`${proxyPath}?${qs.toString()}`, {
@@ -136,6 +143,7 @@
           credentials: "same-origin",
           headers: { Accept: "application/json" },
         });
+        console.log({ res });
         if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
         const data = await res.json();
         const campaigns = data?.campaigns || [];
@@ -214,6 +222,7 @@
       if (cartData.items.length > 0) {
         const preCheckedOffers = this.offers.filter((offer) => offer.preCheck);
         for (const offer of preCheckedOffers) {
+          if (this.uncheckedVariants.includes(offer.variantId)) continue;
           const isInCart = cartData.items.some(
             (item) => toNumericId(item.variant_id) === offer.variantId,
           );
@@ -233,6 +242,7 @@
       );
       if (cartPreCheckedOffers.length > 0 && cartData.items.length > 0) {
         for (const offer of cartPreCheckedOffers) {
+          if (this.uncheckedVariants.includes(offer.variantId)) continue;
           const isInCart = cartData.items.some(
             (item) => toNumericId(item.variant_id) === offer.variantId,
           );
@@ -276,8 +286,15 @@
           try {
             if (cb.checked) {
               await this.addCampaignToCart(variantId);
+              const index = this.uncheckedVariants.indexOf(variantId);
+              if (index > -1) this.uncheckedVariants.splice(index, 1);
+              this.saveUncheckedToStorage();
             } else {
               await this.removeCampaignFromCart(variantId);
+              if (!this.uncheckedVariants.includes(variantId)) {
+                this.uncheckedVariants.push(variantId);
+              }
+              this.saveUncheckedToStorage();
             }
           } catch (error) {
             console.error("Error updating cart:", error);
@@ -295,7 +312,11 @@
       const isInCart = cartData.items.some(
         (item) => toNumericId(item.variant_id) === variantId,
       );
-      const checked = offer.preCheck || isInCart ? "checked" : "";
+      const checked =
+        (offer.preCheck || isInCart) &&
+        !this.uncheckedVariants.includes(variantId)
+          ? "checked"
+          : "";
 
       const metadata = offer.metadata || {};
       const checkboxStyle = metadata.checkboxStyle || {};
@@ -525,6 +546,20 @@
     invalidateCartCache() {
       this.cartCache = null;
       this.cartCacheAt = 0;
+    },
+
+    saveUncheckedToStorage() {
+      localStorage.setItem(
+        this.LOCAL_STORAGE_UNCHECKED_KEY,
+        JSON.stringify(this.uncheckedVariants),
+      );
+    },
+
+    loadUncheckedFromStorage() {
+      const stored = localStorage.getItem(this.LOCAL_STORAGE_UNCHECKED_KEY);
+      if (stored) {
+        this.uncheckedVariants = JSON.parse(stored);
+      }
     },
   };
 
