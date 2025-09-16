@@ -1,6 +1,6 @@
 import { json, type ActionFunction } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
-import { getCampaignsByStatus } from "../db/actions/campaign";
+import { getActiveCampaignsByShop } from "../db/actions/campaign";
 import type { ICampaign } from "app/types/campaigns";
 
 export const loader = async ({ request }: any) => {
@@ -13,12 +13,14 @@ export const loader = async ({ request }: any) => {
   const url = new URL(request.url);
   const productId = url.searchParams.get("product_id") || "";
   const collectionId = url.searchParams.get("collection_id") || "";
+  const shop = url.searchParams.get("shop") || "";
+
   const pageType = (
     url.searchParams.get("page_type") || "product"
   ).toLowerCase();
 
   try {
-    const campaigns = await getCampaignsByStatus("Active");
+    const campaigns = await getActiveCampaignsByShop(shop);
 
     const normalizeId = (id: string): string => {
       if (id.startsWith("gid://shopify/")) {

@@ -24,6 +24,16 @@ export const getCampaignsByStatus = async (status: string) => {
   }
 };
 
+export const getActiveCampaignsByShop = async (shop: string) => {
+  try {
+    const campaigns = await Campaigns.find({ shop, status: "Active" }).exec();
+    return campaigns;
+  } catch (error) {
+    console.error("Error fetching active campaigns by shop:", error);
+    throw new Error("Failed to fetch active campaigns");
+  }
+};
+
 export const countCampaigns = async (where: any) => {
   try {
     const count = await Campaigns.countDocuments(where).exec();
