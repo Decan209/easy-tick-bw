@@ -1,0 +1,168 @@
+.tick-one-widget {
+  margin: 20px 0;
+  font-family: inherit;
+  max-width: 100%;
+}
+
+.tick-one-upsell-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.tick-one-upsell-card {
+  background: #fff;
+  border: 1px solid #e1e3e5;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tick-one-upsell-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tick-one-checkbox {
+  appearance: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: relative !important;
+  margin: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.tick-one-price {
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.tick-one-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: pointer;
+}
+
+.tick-one-modal-content {
+  background: white;
+  border-radius: 8px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  cursor: default;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.tick-one-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tick-one-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.tick-one-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: #666;
+}
+
+.tick-one-modal-close:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.tick-one-modal-body {
+  padding: 0;
+}
+
+.tick-one-modal-image {
+  width: 100%;
+  height: auto;
+  max-width: 600px;
+  max-height: 600px;
+  object-fit: contain;
+  display: block;
+}
+
+.tick-one-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  color: #666;
+  font-size: 14px;
+}
+
+.tick-one-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #666;
+  border-radius: 50%;
+  animation: tick-one-spin 1s linear infinite;
+}
+
+@keyframes tick-one-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .tick-one-widget {
+    margin: 16px 0;
+  }
+
+  .tick-one-upsell-card {
+    padding: 12px;
+  }
+
+  .tick-one-modal-content {
+    max-width: 95vw;
+    max-height: 95vh;
+  }
+
+  .tick-one-modal-header {
+    padding: 12px 16px;
+  }
+
+  .tick-one-modal-header h3 {
+    font-size: 16px;
+  }
+}
+
+.tick-one-widget[style*="display: none"] {
+  display: none !important;
+}

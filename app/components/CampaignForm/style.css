@@ -1,0 +1,11 @@
+#campaign-form .Polaris-Box {
+  margin-bottom: 10px;
+}
+
+.form-image-preview {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}

@@ -1,0 +1,71 @@
+.preview-container {
+  width: 460px;
+  position: fixed;
+  top: 95px;
+  z-index: 2;
+}
+
+.preview-card-inner {
+  padding: 20px;
+}
+
+.preview-offer-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-image-wrap {
+  margin-bottom: 8px;
+}
+
+.preview-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f8f9fa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.preview-checkbox-label-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.preview-checkbox {
+  accent-color: #6366f1;
+}
+
+.preview-title-main {
+  font-size: 14px;
+  font-weight: 600;
+  color: #222;
+}
+
+.preview-price-main {
+  color: var(--checkbox-accent, #6366f1);
+  font-weight: 700;
+  font-size: 14px;
+  margin-left: 4px;
+}
+
+.preview-compare-price {
+  color: #888;
+  font-size: 14px;
+  text-decoration: line-through;
+  margin-left: 4px;
+}
+
+.preview-description-main {
+  font-size: 14px;
+  color: #222;
+  margin-left: 32px;
+  margin-top: 2px;
+}
+
+.empty-preview {
+  text-align: center;
+  padding: 32px;
+}

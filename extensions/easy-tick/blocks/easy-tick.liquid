@@ -1,0 +1,95 @@
+{% if block.settings.enabled %}
+  {% assign page_type = 'product' %}
+  {% if template.name == 'cart' %}
+    {% assign page_type = 'cart' %}
+  {% elsif template.name == 'index' %}
+    {% assign page_type = 'home' %}
+  {% endif %}
+
+  <div
+    id="easy-tick-widget-{{ block.id }}"
+    class="tick-one-widget"
+    data-shop="{{ shop.permanent_domain }}"
+    data-product-id="{{ product.id | default: '' }}"
+    data-collection-id="{% if collection %}{{ collection.id }}{% else %}{{ product.collections.first.id }}{% endif %}"
+    data-page-type="{{ page_type }}"
+    data-block-id="{{ block.id }}"
+    data-max-items="{{ block.settings.max_items }}"
+    data-proxy-path="/apps/easy-tick/campaigns"
+    data-debug="{{ block.settings.debug_mode }}"
+    {% if product.selected_or_first_available_variant %}
+      data-variant-id="{{ product.selected_or_first_available_variant.id }}"
+      data-variant-price="{{ product.selected_or_first_available_variant.price | money_without_currency }}"
+    {% endif %}
+  >
+    <div class="tick-one-loading">
+      <div class="tick-one-spinner"></div>
+      <span>Loading offers...</span>
+    </div>
+  </div>
+
+  {% for variant in product.variants %}
+    <div
+      style="display: none;"
+      data-variant-id="{{ variant.id }}"
+      data-variant-price="{{ variant.price | money_without_currency }}"
+    ></div>
+  {% endfor %}
+
+  <link rel="stylesheet" href="{{ 'style.css' | asset_url }}">
+  <script src="{{ 'easy-tick.js' | asset_url }}" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (typeof EasyTickWidget !== 'undefined') {
+        EasyTickWidget.init('easy-tick-widget-{{ block.id }}');
+      } else {
+        console.error('EasyTickWidget not found');
+      }
+    });
+  </script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "EasyTick Upsells",
+  "target": "section",
+  "templates": ["product", "cart"],
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "This block displays upsell campaigns you created in the TickOne app admin. All campaign settings (design, targeting, products) are managed in your app dashboard."
+    },
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Show upsells on this page",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "max_items",
+      "label": "Maximum offers to display",
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "default": 3,
+      "info": "Limit how many upsell offers appear at once"
+    },
+    {
+      "type": "checkbox",
+      "id": "debug_mode",
+      "label": "Enable debug mode",
+      "default": false,
+      "info": "Show debug information in browser console"
+    },
+    {
+      "type": "header",
+      "content": "Need Help?"
+    },
+    {
+      "type": "paragraph",
+      "content": "To create, edit, or customize campaigns, go to your TickOne app admin panel. This block only displays the campaigns you've already set up."
+    }
+  ]
+}
+{% endschema %}
