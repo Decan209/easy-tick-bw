@@ -2,7 +2,7 @@
 
 client_id = "39216005b8e233e9c556d89bb7a73c6d"
 name = "easy-tick-bw"
-application_url = "https://reel-riding-infinite-components.trycloudflare.com"
+application_url = "https://easy-tick-bw.vercel.app"
 embedded = true
 handle = "easy-tick-bw"
 
@@ -26,7 +26,7 @@ api_version = "2025-07"
 scopes = "write_products"
 
 [auth]
-redirect_urls = ["https://reel-riding-infinite-components.trycloudflare.com/auth/callback", "https://reel-riding-infinite-components.trycloudflare.com/auth/shopify/callback", "https://reel-riding-infinite-components.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://easy-tick-bw.vercel.app/auth/callback", "https://easy-tick-bw.vercel.app/auth/shopify/callback", "https://easy-tick-bw.vercel.app/api/auth/callback"]
 
 [pos]
 embedded = false

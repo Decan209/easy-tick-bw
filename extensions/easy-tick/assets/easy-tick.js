@@ -20,6 +20,7 @@
     cartCache: null,
     cartCacheAt: 0,
     LOCAL_STORAGE_UNCHECKED_KEY: "easyTickUncheckedVariants",
+    activeColor: "#FF9924",
 
     init(widgetId) {
       const el = document.getElementById(widgetId);
@@ -267,6 +268,7 @@
       `;
       el.innerHTML = html;
       this.setupCheckboxEvents();
+      this.setupImageModalEvents();
 
       if (this.cfg.pageType === "product") {
         this.updateCartUI(cartData);
@@ -304,6 +306,20 @@
       });
     },
 
+    setupImageModalEvents() {
+      if (!this.cfg?.el) return;
+      this.cfg.el.querySelectorAll(".tick-one-image-preview").forEach((img) => {
+        img.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const title = img.dataset.title;
+          const imagesJson = img.dataset.images;
+          const description = img.dataset.description;
+          const activeColor = img.dataset.activeColor || "#FF9924";
+          this.showImageModal(title, imagesJson, description, activeColor);
+        });
+      });
+    },
+
     renderOffer(offer, variantPrices, cartData) {
       const variantId = toNumericId(
         offer.selectedVariantId || offer.variantId || "",
@@ -322,7 +338,7 @@
       const checkboxStyle = metadata.checkboxStyle || {};
       const fontSettings = metadata.fontSettings || {};
 
-      const priceColor = checkboxStyle.activeColor || "#0066CC";
+      const priceColor = checkboxStyle.activeColor || "#FF9924";
 
       const priceHtml =
         offer.showPrice && price
@@ -351,7 +367,7 @@
       const checkboxStyleInline = `
         background-color: ${checkboxStyle.backgroundColor || "#FFFFFF"};
         border: 1px solid ${checkboxStyle.borderColor || "#E1E3E5"};
-        accent-color: ${checkboxStyle.activeColor || "#0066CC"};
+        accent-color: ${checkboxStyle.activeColor || "#FF9924"};
         width: ${checkboxStyle.size || 20}px;
         height: ${checkboxStyle.size || 20}px;
         margin: 0;
@@ -365,11 +381,20 @@
         font-weight: ${fontSettings.weight || "normal"};
       `;
 
+      const imagesJson = JSON.stringify(
+        offer.images || [offer.imageUrl],
+      ).replace(/'/g, "\\'");
+
       const imageHtml = offer.imageUrl
         ? `<img src="${this.escapeAttr(offer.imageUrl)}" 
          alt="${this.escapeAttr(offer.heading || offer.title)}" 
+         class="tick-one-image-preview"
+         data-image-src="${this.escapeAttr(offer.imageUrl)}"
+         data-title="${this.escapeAttr(offer.heading || offer.title)}"
+         data-images="${this.escapeAttr(imagesJson)}"
+         data-active-color="${this.escapeAttr(priceColor)}"
+         data-description="${this.escapeAttr(offer.shopifyDescription || "")}"
          style="${imageStyle}"
-         onclick="event.stopPropagation(); window.EasyTickWidget.showImageModal('${this.escapeAttr(offer.imageUrl)}', '${this.escapeAttr(offer.heading || offer.title)}')"
          onmouseover="this.style.opacity='0.8'"
          onmouseout="this.style.opacity='1'"
          title="Click to preview">`
@@ -391,7 +416,7 @@
               ${offer.showImage ? imageHtml : ""}
               <div style="flex: 1;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                  <span style="${fontStyle}; font-weight: 700;">
+                  <span style="${fontStyle}; font-weight: 600;">
                     ${this.escape(offer.heading || offer.title)}
                   </span>
                   ${priceHtml}
@@ -477,34 +502,178 @@
       }
     },
 
-    showImageModal(imageSrc, title) {
+    showImageModal(title, imagesJson, description, activeColor = "#FF9924") {
       this.hideImageModal();
-      const modal = document.createElement("div");
-      modal.id = "easy-tick-image-modal";
-      modal.innerHTML = `
-        <div class="tick-one-modal-overlay" onclick="window.EasyTickWidget.hideImageModal()">
-          <div class="tick-one-modal-content" onclick="event.stopPropagation()">
-            <div class="tick-one-modal-header">
-              <h3>${this.escape(title)}</h3>
-              <button class="tick-one-modal-close" onclick="window.EasyTickWidget.hideImageModal()">×</button>
-            </div>
-            <div class="tick-one-modal-body">
-              <img src="${this.escapeAttr(imageSrc)}" alt="${this.escapeAttr(
-                title,
-              )}" class="tick-one-modal-image">
+      try {
+        this.activeColor = activeColor;
+        const images = JSON.parse(imagesJson);
+        const modal = document.createElement("div");
+        modal.id = "easy-tick-image-modal";
+        modal.innerHTML = `
+          <div class="tick-one-modal-overlay" onclick="window.EasyTickWidget.hideImageModal()" 
+            style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                  background: rgba(0,0,0,0.6); display: flex; align-items: center; 
+                  justify-content: center; z-index: 10000;">
+            
+            <div class="tick-one-modal-content" onclick="event.stopPropagation()" 
+              style="background: #fff; border-radius: 8px; max-width: 600px; width: 90%; 
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.2); overflow: hidden;">
+
+              <div style="padding: 16px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #222;">${this.escape(title)}</h3>
+                <button onclick="window.EasyTickWidget.hideImageModal()" 
+                  style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">×</button>
+              </div>
+
+              <div style="padding: 16px; text-align: center;">
+                <p style="font-size: 14px; color: #444; margin: 0 0 16px; line-height: 1.4;">${this.escape(description)}</p>
+                
+                <div style="position: relative; display: inline-block; max-width: 100%;">
+                  ${
+                    images.length > 1
+                      ? `
+                    <button class="tick-one-prev" onclick="window.EasyTickWidget.prevImage()" 
+                      style="position: absolute; left: -40px; top: 50%; transform: translateY(-50%);
+                            background: ${activeColor}80; color: white; border: none;
+                            border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 20px;
+                            display: flex; align-items: center; justify-content: center; z-index: 10;">‹</button>`
+                      : ""
+                  }
+                  
+                  <img id="tick-one-modal-image" src="${this.escapeAttr(images[0])}" 
+                      alt="${this.escapeAttr(title)}" 
+                      style="max-width: 100%; border-radius: 4px; max-height: 50vh; object-fit: contain;">
+                  
+                  ${
+                    images.length > 1
+                      ? `
+                    <button class="tick-one-next" onclick="window.EasyTickWidget.nextImage()" 
+                      style="position: absolute; right: -40px; top: 50%; transform: translateY(-50%);
+                            background: ${activeColor}80; color: white; border: none;
+                            border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 20px;
+                            display: flex; align-items: center; justify-content: center; z-index: 10;">›</button>`
+                      : ""
+                  }
+                </div>
+                
+                ${
+                  images.length > 1
+                    ? `
+                    <div id="tick-one-dots" style="margin-top: 16px; display: flex; justify-content: center; gap: 8px;">
+                      ${images.map((_, index) => `<span class="tick-one-dot" data-index="${index}" style="width: 10px; height: 10px; border-radius: 50%; background: ${index === 0 ? activeColor : "#ccc"}; cursor: pointer;"></span>`).join("")}
+                    </div>`
+                    : ""
+                }
+              </div>
             </div>
           </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-      const handleEscape = (e) => {
-        if (e.key === "Escape") {
-          this.hideImageModal();
-          document.removeEventListener("keydown", handleEscape);
+        `;
+        document.body.appendChild(modal);
+        this.currentImageIndex = 0;
+        this.images = images;
+
+        let startX = 0;
+        let startY = 0;
+        const imgElement = document.getElementById("tick-one-modal-image");
+        if (imgElement) {
+          imgElement.addEventListener("touchstart", (e) => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+          });
+          imgElement.addEventListener("touchend", (e) => {
+            if (!startX || !startY) return;
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+            const diffX = startX - endX;
+            const diffY = startY - endY;
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+              if (diffX > 0) {
+                this.nextImage();
+              } else {
+                this.prevImage();
+              }
+            }
+            startX = 0;
+            startY = 0;
+          });
         }
-      };
-      document.addEventListener("keydown", handleEscape);
-      document.body.style.overflow = "hidden";
+
+        const dots = document.querySelectorAll(".tick-one-dot");
+        dots.forEach((dot) => {
+          dot.addEventListener("click", () => {
+            const index = parseInt(dot.dataset.index);
+            this.currentImageIndex = index;
+            document.getElementById("tick-one-modal-image").src =
+              this.images[index];
+            this.updateDots(this.activeColor);
+          });
+        });
+
+        const handleEscape = (e) => {
+          if (e.key === "Escape") {
+            this.hideImageModal();
+            document.removeEventListener("keydown", handleEscape);
+          }
+        };
+        document.addEventListener("keydown", handleEscape);
+        document.body.style.overflow = "hidden";
+
+        const styleTag = document.createElement("style");
+        styleTag.innerHTML = `
+          @media (max-width: 600px) {
+            .tick-one-modal-content {
+              max-width: 95% !important;
+              border-radius: 6px;
+            }
+            .tick-one-modal-content h3 {
+              font-size: 16px !important;
+            }
+            .tick-one-modal-content p {
+              font-size: 13px !important;
+            }
+            .tick-one-modal-content button {
+              width: 28px !important;
+              height: 28px !important;
+              font-size: 16px !important;
+            }
+            .tick-one-prev, .tick-one-next {
+              display: none !important;
+            }
+          }
+        `;
+        document.head.appendChild(styleTag);
+      } catch (error) {
+        console.error("Error showing image modal:", error);
+      }
+    },
+
+    prevImage() {
+      if (this.images && this.images.length > 1) {
+        this.currentImageIndex =
+          (this.currentImageIndex - 1 + this.images.length) %
+          this.images.length;
+        document.getElementById("tick-one-modal-image").src =
+          this.images[this.currentImageIndex];
+        this.updateDots(this.activeColor);
+      }
+    },
+
+    nextImage() {
+      if (this.images && this.images.length > 1) {
+        this.currentImageIndex =
+          (this.currentImageIndex + 1) % this.images.length;
+        document.getElementById("tick-one-modal-image").src =
+          this.images[this.currentImageIndex];
+        this.updateDots(this.activeColor);
+      }
+    },
+
+    updateDots(activeColor = "#FF9924") {
+      const dots = document.querySelectorAll(".tick-one-dot");
+      dots.forEach((dot, index) => {
+        dot.style.background =
+          index === this.currentImageIndex ? activeColor : "#ccc";
+      });
     },
 
     hideImageModal() {
