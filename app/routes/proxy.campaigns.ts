@@ -44,13 +44,10 @@ export const loader = async ({ request }: any) => {
         if (campaign.targetType === "collection") {
           if (!collectionId) return false;
 
-          if (campaign.selectedCollectionId) {
-            return matchesId(campaign.selectedCollectionId, collectionId);
-          }
-
-          if (campaign.targetProducts?.length) {
-            return campaign.targetProducts.some((targetCollectionId: string) =>
-              matchesId(targetCollectionId, collectionId),
+          if (campaign.selectedCollections?.length) {
+            return campaign.selectedCollections.some(
+              (targetCollectionId: string) =>
+                matchesId(targetCollectionId, collectionId),
             );
           }
 
@@ -92,13 +89,15 @@ export const loader = async ({ request }: any) => {
           status: campaign.status,
           placement: campaign.placement,
           targetType: campaign.targetType,
-          selectedCollectionId: campaign.selectedCollectionId,
+          selectedCollections: campaign.selectedCollections || [],
           targetProducts: campaign.targetProducts || [],
           selectedVariantId: campaign.selectedVariantId,
           selectedProductId: campaign.selectedProductId,
           showPrice: campaign.showPrice,
           price: campaign.price,
           preCheck: campaign.preCheck,
+          images: campaign.images || [],
+          shopifyDescription: campaign.shopifyDescription || "",
           showVariantSelector: campaign.showVariantSelector,
           backgroundColor: campaign.backgroundColor,
           borderColor: campaign.borderColor,

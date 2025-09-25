@@ -51,6 +51,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     return json<LoaderData>({
       campaign: {
         ...campaign,
+        selectedCollections: campaign.selectedCollections || [],
         createdAt: new Date(campaign.createdAt).toISOString(),
         updatedAt: new Date(campaign.updatedAt).toISOString(),
       },
@@ -104,7 +105,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   ) as ICampaignPlacement;
   const targetType = String(form.get("targetType") || "all");
 
-  const selectedCollection = String(form.get("selectedCollection") || "");
+  const selectedCollections = JSON.parse(
+    String(form.get("selectedCollections") || "[]"),
+  ) as string[];
   const targetProducts: string[] = [];
   for (let i = 0; form.get(`targetProducts[${i}]`); i++) {
     targetProducts.push(String(form.get(`targetProducts[${i}]`)));
@@ -190,13 +193,22 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
     productImageUrl = selectedProductData.images[0].url;
   }
 
+  let images: string[] = [];
+  let shopifyDescription: string | null = null;
+
+  if (selectedProductData) {
+    images = selectedProductData.images?.map((img: any) => img.url) || [];
+    shopifyDescription = selectedProductData.description || "";
+  }
+
   try {
     await updateCampaignById(params.id, {
       title,
       status,
       placement,
       targetType,
-      selectedCollectionId: selectedCollection || null,
+      selectedCollections:
+        selectedCollections.length > 0 ? selectedCollections : [],
       targetProducts: targetProducts.length > 0 ? targetProducts : [],
       selectedVariantId: selectedVariant || null,
       selectedProductId: selectedProduct || null,
@@ -219,6 +231,8 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
       padding,
       borderRadius,
       imageSize,
+      images,
+      shopifyDescription,
       metadata: JSON.stringify({
         checkboxStyle: {
           backgroundColor: checkboxBackgroundColor,
@@ -281,7 +295,7 @@ export default function CampaignDetail() {
     status: campaign.status as "Active" | "Draft",
     placement: campaign.placement,
     targetType: campaign.targetType || "all",
-    selectedCollection: campaign.selectedCollectionId || "",
+    selectedCollections: campaign.selectedCollections || [],
     selectedProducts: parsedTargetProducts,
     selectedVariant: campaign.selectedVariantId || "",
     selectedProduct: campaign.selectedProductId || "",
@@ -309,6 +323,8 @@ export default function CampaignDetail() {
     fontSize: metadata?.fontSettings?.size || 14,
     fontColor: metadata?.fontSettings?.color || "#000000",
     fontWeight: metadata?.fontSettings?.weight || "normal",
+    images: campaign.images || [],
+    shopifyDescription: campaign.shopifyDescription || "",
   });
 
   const [productSelectorOpen, setProductSelectorOpen] = useState(false);
@@ -340,6 +356,9 @@ export default function CampaignDetail() {
     updateField("selectedVariantData", JSON.stringify(variant));
     updateField("price", variant.price);
 
+    updateField("images", product.images?.map((img: any) => img.url) || []);
+    updateField("shopifyDescription", product.description || "");
+
     if (product.images?.[0]?.url) {
       updateField("imageUrl", product.images[0].url);
     }
@@ -358,7 +377,7 @@ export default function CampaignDetail() {
 
   if (nav.state === "loading") {
     return (
-      <Page title="Create Campaign">
+      <Page title="Edit Campaign">
         <div
           style={{
             display: "flex",

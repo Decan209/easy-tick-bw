@@ -1,6 +1,11 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useLocation, useSearchParams } from "@remix-run/react";
+import {
+  useLoaderData,
+  useLocation,
+  useSearchParams,
+  useNavigate,
+} from "@remix-run/react";
 import { useCallback, useMemo, useState } from "react";
 import { Page, Card, Button, TextField, Tabs } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
@@ -76,6 +81,7 @@ export default function AppIndex() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(filters.q);
+  const navigate = useNavigate();
 
   const tabs = useMemo(
     () => [
@@ -108,7 +114,10 @@ export default function AppIndex() {
       title="Campaigns"
       primaryAction={{
         content: "Create Upsell",
-        url: `/app/campaigns/new${location.search}`,
+        onAction: () => {
+          const redirectUrl = `/app/campaigns/new${location.search}`;
+          navigate(redirectUrl);
+        },
       }}
     >
       <Card>

@@ -138,7 +138,7 @@ export default function CampaignForm({
         <Card>
           <TargetProducts
             targetType={formData.targetType}
-            selectedCollection={formData.selectedCollection}
+            selectedCollection={formData.selectedCollections}
             selectedProducts={formData.selectedProducts}
             collections={collections.map((c) => ({
               ...c,
@@ -146,7 +146,7 @@ export default function CampaignForm({
               description: c.description ?? "",
             }))}
             onTargetTypeChange={(v) => updateField("targetType", v)}
-            onCollectionChange={(v) => updateField("selectedCollection", v)}
+            onCollectionChange={(v) => updateField("selectedCollections", v)}
             onSelectProducts={() => setTargetProductSelectorOpen(true)}
             getSelectedProductsText={() =>
               Array.isArray(formData.selectedProducts) &&
@@ -375,8 +375,8 @@ export default function CampaignForm({
         <input type="hidden" name="targetType" value={formData.targetType} />
         <input
           type="hidden"
-          name="selectedCollection"
-          value={formData.selectedCollection}
+          name="selectedCollections"
+          value={JSON.stringify(formData.selectedCollections)}
         />
         <input
           type="hidden"

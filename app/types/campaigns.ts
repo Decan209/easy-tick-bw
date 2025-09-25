@@ -23,7 +23,7 @@ export interface ICampaign {
   targetType: ICampaignTargetType;
   placement: ICampaignPlacement;
 
-  selectedCollectionId?: string | null;
+  selectedCollections?: string[] | null;
   targetProducts?: string[];
 
   selectedVariantId?: string | null;
@@ -34,7 +34,9 @@ export interface ICampaign {
 
   heading?: string | null;
   description?: string | null;
+  shopifyDescription?: string | null;
   imageUrl?: string | null;
+  images: string[];
   showImage: boolean;
 
   price?: string | null;

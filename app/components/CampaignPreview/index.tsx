@@ -1,7 +1,7 @@
 import { Card, Text } from "@shopify/polaris";
-import { useState } from "react";
-import "./style.css";
+import { useState, useEffect } from "react";
 import type { IFormData } from "app/types/shopify";
+import "./style.css";
 
 interface CampaignPreviewProps {
   formData: IFormData;
@@ -10,6 +10,13 @@ interface CampaignPreviewProps {
 export function CampaignPreview({ formData }: CampaignPreviewProps) {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (imageModalOpen) {
+      setCurrentImageIndex(0);
+    }
+  }, [imageModalOpen]);
 
   const hasData =
     formData.heading ||
@@ -33,66 +40,19 @@ export function CampaignPreview({ formData }: CampaignPreviewProps) {
     );
   }
 
-  const imageUrl = formData.imageUrl;
+  const images = formData.images || [formData.imageUrl].filter(Boolean);
+  const activeColor = formData.checkboxActiveColor || "#0066CC";
 
-  const cardStyle = {
-    background: formData.backgroundColor || "#FFFFFF",
-    border: `1px solid ${formData.borderColor || "#E1E3E5"}`,
-    borderRadius: `${formData.borderRadius || 8}px`,
-    padding: `${formData.padding || 16}px`,
-    transition: "all 0.2s ease",
-    cursor: "pointer",
-    boxShadow: isHovered
-      ? "0 4px 12px rgba(0, 0, 0, 0.15)"
-      : "0 1px 3px rgba(0, 0, 0, 0.1)",
-    transform: isHovered ? "translateY(-1px)" : "none",
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
-  const imageStyle = {
-    width: `${formData.imageSize || 50}px`,
-    height: `${formData.imageSize || 50}px`,
-    borderRadius: "6px",
-    objectFit: "cover" as const,
-    cursor: "pointer",
-    transition: "opacity 0.2s ease",
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
   };
 
-  const checkboxStyle = {
-    backgroundColor: formData.checkboxBackgroundColor || "#FFFFFF",
-    border: `1px solid ${formData.checkboxBorderColor || "#E1E3E5"}`,
-    accentColor: formData.checkboxActiveColor || "#0066CC",
-    width: `${formData.checkboxSize || 20}px`,
-    height: `${formData.checkboxSize || 20}px`,
-    margin: 0,
-    cursor: "pointer",
-    flexShrink: 0,
-  };
-
-  const fontStyle = {
-    fontSize: `${formData.fontSize || 14}px`,
-    color: formData.fontColor || "#000000",
-    fontWeight: formData.fontWeight || "normal",
-  };
-
-  const titleStyle = {
-    ...fontStyle,
-    fontWeight: "600",
-    margin: 0,
-  };
-
-  const descriptionStyle = {
-    ...fontStyle,
-    fontSize: `${(formData.fontSize || 14) - 1}px`,
-    opacity: 0.8,
-    margin: "4px 0 0 0",
-    lineHeight: 1.4,
-  };
-
-  const priceStyle = {
-    color: formData.checkboxActiveColor || "#0066CC",
-    fontWeight: "600",
-    fontSize: `${formData.fontSize || 14}px`,
-    whiteSpace: "nowrap" as const,
+  const updateDots = (index: number) => {
+    setCurrentImageIndex(index);
   };
 
   return (
@@ -106,48 +66,82 @@ export function CampaignPreview({ formData }: CampaignPreviewProps) {
           </div>
 
           <div
-            style={cardStyle}
+            className={`tick-one-upsell-card ${isHovered ? "hovered" : ""}`}
+            style={{
+              background: formData.backgroundColor || "#FFFFFF",
+              borderColor: formData.borderColor || "#E1E3E5",
+              borderRadius: `${formData.borderRadius || 8}px`,
+              padding: `${formData.padding || 16}px`,
+            }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            onClick={() => setImageModalOpen(true)}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div className="card-content">
               <input
                 type="checkbox"
                 checked={formData.preCheck}
                 readOnly
-                style={checkboxStyle}
+                className="tick-one-checkbox"
+                style={{
+                  backgroundColor:
+                    formData.checkboxBackgroundColor || "#FFFFFF",
+                  borderColor: formData.checkboxBorderColor || "#E1E3E5",
+                  accentColor: formData.checkboxActiveColor || "#0066CC",
+                  width: `${formData.checkboxSize || 20}px`,
+                  height: `${formData.checkboxSize || 20}px`,
+                }}
+                onClick={(e) => e.stopPropagation()}
               />
 
-              {imageUrl && formData.showImage && (
+              {formData.imageUrl && formData.showImage && (
                 <img
-                  src={imageUrl}
+                  src={formData.imageUrl}
                   alt={formData.heading || "Product Image"}
-                  style={imageStyle}
-                  onClick={() => setImageModalOpen(true)}
-                  onMouseOver={(e) => (e.currentTarget.style.opacity = "0.8")}
-                  onMouseOut={(e) => (e.currentTarget.style.opacity = "1")}
+                  className="tick-one-image"
+                  style={{
+                    width: `${formData.imageSize || 50}px`,
+                    height: `${formData.imageSize || 50}px`,
+                  }}
                   title="Click to preview"
                 />
               )}
 
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "4px",
-                  }}
-                >
-                  <span style={titleStyle}>
+              <div className="card-text">
+                <div className="card-header">
+                  <span
+                    className="tick-one-title"
+                    style={{
+                      fontSize: `${formData.fontSize || 14}px`,
+                      color: formData.fontColor || "#000000",
+                      fontWeight: formData.fontWeight || "normal",
+                    }}
+                  >
                     {formData.heading || "Product Title"}
                   </span>
                   {formData.showPrice && formData.price && (
-                    <span style={priceStyle}>(+ ${formData.price})</span>
+                    <span
+                      className="tick-one-price"
+                      style={{
+                        color: formData.checkboxActiveColor || "#0066CC",
+                        fontSize: `${formData.fontSize || 14}px`,
+                      }}
+                    >
+                      (+ ${formData.price})
+                    </span>
                   )}
                 </div>
                 {formData.description && (
-                  <div style={descriptionStyle}>{formData.description}</div>
+                  <div
+                    className="tick-one-description"
+                    style={{
+                      fontSize: `${(formData.fontSize || 14) - 1}px`,
+                      color: formData.fontColor || "#000000",
+                      fontWeight: formData.fontWeight || "normal",
+                    }}
+                  >
+                    {formData.description}
+                  </div>
                 )}
               </div>
             </div>
@@ -155,95 +149,104 @@ export function CampaignPreview({ formData }: CampaignPreviewProps) {
         </div>
       </Card>
 
-      {imageModalOpen && imageUrl && formData.showImage && (
+      {imageModalOpen && images.length > 0 && (
         <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0, 0, 0, 0.8)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            cursor: "pointer",
-          }}
+          className="image-modal-overlay"
           onClick={() => setImageModalOpen(false)}
         >
           <div
-            style={{
-              background: "white",
-              borderRadius: "8px",
-              maxWidth: "90vw",
-              maxHeight: "90vh",
-              overflow: "hidden",
-              cursor: "default",
-              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-            }}
+            className="image-modal-content"
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              style={{
-                padding: "16px 20px",
-                borderBottom: "1px solid #eee",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "18px",
-                  fontWeight: "600",
-                  color: "#333",
-                }}
-              >
+            <div className="image-modal-header">
+              <h3 className="image-modal-title">
                 {formData.heading || "Product Title"}
               </h3>
               <button
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: "24px",
-                  cursor: "pointer",
-                  padding: 0,
-                  width: "30px",
-                  height: "30px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "4px",
-                  color: "#666",
-                }}
+                className="image-modal-close"
                 onClick={() => setImageModalOpen(false)}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = "#f5f5f5";
-                  e.currentTarget.style.color = "#333";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = "none";
-                  e.currentTarget.style.color = "#666";
-                }}
               >
                 ×
               </button>
             </div>
-            <div style={{ padding: 0 }}>
-              <img
-                src={imageUrl}
-                alt={formData.heading || "Product Image"}
-                style={{
-                  width: "100%",
-                  height: "auto",
-                  maxWidth: "600px",
-                  maxHeight: "600px",
-                  objectFit: "contain",
-                  display: "block",
-                }}
-              />
+
+            <div className="image-modal-body">
+              {formData.shopifyDescription && (
+                <p className="image-modal-description">
+                  {formData.shopifyDescription}
+                </p>
+              )}
+
+              <div className="image-carousel">
+                {images.length > 1 && (
+                  <button
+                    className="tick-one-prev"
+                    onClick={prevImage}
+                    style={{ background: `${activeColor}80` }}
+                  >
+                    ‹
+                  </button>
+                )}
+
+                <img
+                  src={images[currentImageIndex]}
+                  alt={formData.heading || "Product Image"}
+                  className="image-modal-image"
+                  onTouchStart={(e) => {
+                    const touch = e.touches[0];
+                    e.currentTarget.dataset.startX = touch.clientX.toString();
+                    e.currentTarget.dataset.startY = touch.clientY.toString();
+                  }}
+                  onTouchEnd={(e) => {
+                    const startX = parseFloat(
+                      e.currentTarget.dataset.startX || "0",
+                    );
+                    const startY = parseFloat(
+                      e.currentTarget.dataset.startY || "0",
+                    );
+                    const endX = e.changedTouches[0].clientX;
+                    const endY = e.changedTouches[0].clientY;
+                    const diffX = startX - endX;
+                    const diffY = startY - endY;
+                    if (
+                      Math.abs(diffX) > Math.abs(diffY) &&
+                      Math.abs(diffX) > 50
+                    ) {
+                      if (diffX > 0) {
+                        nextImage();
+                      } else {
+                        prevImage();
+                      }
+                    }
+                  }}
+                />
+
+                {images.length > 1 && (
+                  <button
+                    className="tick-one-next"
+                    onClick={nextImage}
+                    style={{ background: `${activeColor}80` }}
+                  >
+                    ›
+                  </button>
+                )}
+              </div>
+
+              {images.length > 1 && (
+                <div className="tick-one-dots">
+                  {images.map((_: string, index: number) => (
+                    <span
+                      key={index}
+                      className={`tick-one-dot ${index === currentImageIndex ? "active" : ""}`}
+                      onClick={() => updateDots(index)}
+                      style={{
+                        background:
+                          index === currentImageIndex ? activeColor : "#ccc",
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

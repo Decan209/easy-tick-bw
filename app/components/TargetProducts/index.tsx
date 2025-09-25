@@ -4,11 +4,11 @@ import { CollectionSelect } from "../CollectionSelect";
 
 interface TargetProductsProps {
   targetType: string;
-  selectedCollection: string;
+  selectedCollection: string[];
   selectedProducts: string[];
   collections: ShopifyCollection[];
   onTargetTypeChange: (value: string) => void;
-  onCollectionChange: (value: string) => void;
+  onCollectionChange: (value: string[]) => void;
   onSelectProducts: () => void;
   getSelectedProductsText: () => string;
 }
@@ -24,11 +24,11 @@ export function TargetProducts({
   getSelectedProductsText,
 }: TargetProductsProps) {
   return (
-    <>
+    <div className="target-products-container">
       <Text as="p" variant="bodySm" tone="subdued">
         Choose where this upsell campaign will appear
       </Text>
-      <div style={{ marginTop: 16 }}>
+      <div className="target-form-wrapper">
         <FormLayout>
           <Select
             label="Target product type"
@@ -43,11 +43,11 @@ export function TargetProducts({
           />
 
           {targetType === "specific" && (
-            <div>
+            <div className="specific-products-section">
               <Text as="p" variant="bodyMd" fontWeight="medium">
                 Select specific products
               </Text>
-              <div style={{ marginTop: 8 }}>
+              <div className="select-button-wrapper">
                 <Button onClick={onSelectProducts} fullWidth>
                   {getSelectedProductsText()}
                 </Button>
@@ -61,7 +61,7 @@ export function TargetProducts({
                 ))}
               </div>
               {selectedProducts.length > 0 && (
-                <div className="status-badge">
+                <div className="status-badge success">
                   <Text as="p" variant="bodySm" tone="subdued">
                     ✓ Campaign will show only on {selectedProducts.length}{" "}
                     selected product
@@ -73,7 +73,7 @@ export function TargetProducts({
           )}
 
           {targetType === "collection" && (
-            <div>
+            <div className="collection-section">
               <CollectionSelect
                 collections={collections}
                 value={selectedCollection}
@@ -82,7 +82,7 @@ export function TargetProducts({
             </div>
           )}
           {targetType === "all" && (
-            <div className="status-badge">
+            <div className="status-badge info">
               <Text as="p" variant="bodySm" tone="subdued">
                 ✓ Campaign will show on all products in your store
               </Text>
@@ -90,6 +90,6 @@ export function TargetProducts({
           )}
         </FormLayout>
       </div>
-    </>
+    </div>
   );
 }
