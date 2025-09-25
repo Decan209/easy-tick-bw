@@ -63,7 +63,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     form.get("targetType") || "all",
   ) as ICampaignTargetType;
 
-  const selectedCollection = String(form.get("selectedCollection") || "");
+  const selectedCollections = JSON.parse(
+    String(form.get("selectedCollections") || "[]"),
+  ) as string[];
   const targetProducts: string[] = [];
   for (let i = 0; form.get(`targetProducts[${i}]`); i++) {
     targetProducts.push(String(form.get(`targetProducts[${i}]`)));
@@ -149,6 +151,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     productImageUrl = selectedProductData.images[0].url;
   }
 
+  let images: string[] = [];
+  let shopifyDescription: string | null = null;
+
+  if (selectedProductData) {
+    images = selectedProductData.images?.map((img: any) => img.url) || [];
+    shopifyDescription = selectedProductData.description || "";
+  }
+
   try {
     await createCampaign({
       shop: session.shop,
@@ -156,7 +166,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       status,
       placement,
       targetType,
-      selectedCollectionId: selectedCollection || null,
+      selectedCollections:
+        selectedCollections.length > 0 ? selectedCollections : [],
       targetProducts: targetProducts.length > 0 ? targetProducts : [],
       selectedVariantId: selectedVariant || null,
       selectedProductId: selectedProduct || null,
@@ -179,6 +190,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       padding,
       borderRadius,
       imageSize,
+      images,
+      shopifyDescription,
       metadata: JSON.stringify({
         checkboxStyle: {
           backgroundColor: checkboxBackgroundColor,
@@ -232,7 +245,7 @@ export default function NewCampaign() {
     status: "Draft" as "Active" | "Draft",
     placement: "product" as "product" | "cart" | "home",
     targetType: "all",
-    selectedCollection: "",
+    selectedCollections: [] as string[],
     selectedProducts: [] as string[],
     selectedVariant: "",
     selectedProduct: "",
@@ -259,6 +272,8 @@ export default function NewCampaign() {
     fontSize: 14,
     fontColor: "#000000",
     fontWeight: "normal",
+    images: [] as string[],
+    shopifyDescription: "",
   });
 
   const [productSelectorOpen, setProductSelectorOpen] = useState(false);
@@ -288,6 +303,9 @@ export default function NewCampaign() {
     updateField("selectedProductData", JSON.stringify(product));
     updateField("selectedVariantData", JSON.stringify(variant));
     updateField("price", variant.price);
+
+    updateField("images", product.images?.map((img: any) => img.url) || []);
+    updateField("shopifyDescription", product.description || "");
 
     if (product.images?.[0]?.url) {
       updateField("imageUrl", product.images[0].url);

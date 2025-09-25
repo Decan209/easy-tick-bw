@@ -9,63 +9,223 @@
   padding: 20px;
 }
 
-.preview-offer-row {
+.empty-preview {
+  text-align: center;
+  padding: 32px;
+}
+
+.tick-one-upsell-card {
+  border: 1px solid #e1e3e5;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tick-one-upsell-card.hovered {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.card-content {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 12px;
 }
 
-.preview-image-wrap {
-  margin-bottom: 8px;
+.tick-one-checkbox {
+  margin: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  appearance: auto;
 }
 
-.preview-image {
-  width: 80px;
-  height: 80px;
+.tick-one-image {
+  border-radius: 6px;
   object-fit: cover;
-  border-radius: 8px;
-  background: #f8f9fa;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
 }
 
-.preview-checkbox-label-row {
+.tick-one-image:hover {
+  opacity: 0.8;
+}
+
+.card-text {
+  flex: 1;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.tick-one-title {
+  font-weight: 600;
+  margin: 0;
+}
+
+.tick-one-price {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tick-one-description {
+  opacity: 0.8;
+  margin: 4px 0 0 0;
+  line-height: 1.4;
+}
+
+.image-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  z-index: 9999;
+  cursor: pointer;
 }
 
-.preview-checkbox {
-  accent-color: #6366f1;
+.image-modal-content {
+  background: white;
+  border-radius: 8px;
+  max-width: 600px;
+  width: 90%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  cursor: default;
 }
 
-.preview-title-main {
-  font-size: 14px;
+.image-modal-header {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.image-modal-title {
+  margin: 0;
+  font-size: 18px;
   font-weight: 600;
   color: #222;
 }
 
-.preview-price-main {
-  color: var(--checkbox-accent, #6366f1);
-  font-weight: 700;
-  font-size: 14px;
-  margin-left: 4px;
+.image-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
 }
 
-.preview-compare-price {
-  color: #888;
-  font-size: 14px;
-  text-decoration: line-through;
-  margin-left: 4px;
+.image-modal-close:hover {
+  background: #f5f5f5;
+  color: #333;
 }
 
-.preview-description-main {
-  font-size: 14px;
-  color: #222;
-  margin-left: 32px;
-  margin-top: 2px;
-}
-
-.empty-preview {
+.image-modal-body {
+  padding: 16px;
   text-align: center;
-  padding: 32px;
+}
+
+.image-modal-description {
+  font-size: 14px;
+  color: #444;
+  margin: 0 0 16px;
+  line-height: 1.4;
+}
+
+.image-carousel {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.tick-one-prev,
+.tick-one-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.tick-one-prev {
+  left: -40px;
+}
+
+.tick-one-next {
+  right: -40px;
+}
+
+.image-modal-image {
+  max-width: 100%;
+  border-radius: 4px;
+  max-height: 50vh;
+  object-fit: contain;
+}
+
+.tick-one-dots {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tick-one-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ccc;
+  cursor: pointer;
+}
+
+.tick-one-dot.active {
+  background: #0066cc;
+}
+
+@media (max-width: 600px) {
+  .image-modal-content {
+    max-width: 95%;
+    border-radius: 6px;
+  }
+  .image-modal-title {
+    font-size: 16px;
+  }
+  .image-modal-description {
+    font-size: 13px;
+  }
+  .tick-one-prev,
+  .tick-one-next {
+    display: none !important;
+  }
+  .tick-one-prev,
+  .tick-one-next,
+  .image-modal-close {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
 }

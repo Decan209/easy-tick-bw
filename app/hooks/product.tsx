@@ -20,7 +20,8 @@ export async function fetchProducts(
             id
             title
             handle
-            images(first: 1) {
+            description
+            images(first: 10) {
               nodes {
                 url
                 altText
@@ -60,6 +61,7 @@ export async function fetchProducts(
         id: product.id,
         title: product.title || "Untitled Product",
         handle: product.handle || "",
+        description: product.description || "",
         images: product.images?.nodes || [],
         variants: product.variants?.nodes || [],
       }),

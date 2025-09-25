@@ -1,11 +1,11 @@
-import { Autocomplete, Text } from "@shopify/polaris";
+import { useState, useEffect, useMemo } from "react";
+import { Combobox, Listbox, Tag } from "@shopify/polaris";
 import type { ShopifyCollection } from "app/types/shopify";
-import { useState, useMemo, useCallback } from "react";
 
 interface CollectionSelectProps {
   collections: ShopifyCollection[];
-  value: string;
-  onChange: (value: string) => void;
+  value: string[];
+  onChange: (value: string[]) => void;
 }
 
 export function CollectionSelect({
@@ -14,7 +14,11 @@ export function CollectionSelect({
   onChange,
 }: CollectionSelectProps) {
   const [inputValue, setInputValue] = useState("");
-  const [selected, setSelected] = useState(value ? [value] : []);
+  const [selected, setSelected] = useState<string[]>(value || []);
+
+  useEffect(() => {
+    setSelected(value || []);
+  }, [value]);
 
   const filteredOptions = useMemo(
     () =>
@@ -27,43 +31,58 @@ export function CollectionSelect({
     [collections, inputValue],
   );
 
-  const textField = (
-    <Autocomplete.TextField
-      label="Select Collection"
-      value={inputValue}
-      onChange={setInputValue}
-      autoComplete="off"
-      placeholder="Type to search..."
-    />
-  );
+  const handleSelect = (selectedValue: string) => {
+    const newSelected = selected.includes(selectedValue)
+      ? selected.filter((item) => item !== selectedValue)
+      : [...selected, selectedValue];
+    setSelected(newSelected);
+    onChange(newSelected);
+  };
 
-  const handleSelect = useCallback(
-    (selectedItems: string[]) => {
-      setSelected(selectedItems);
-      onChange(selectedItems[0] || "");
-    },
-    [onChange],
-  );
+  const removeTag = (tag: string) => {
+    const newSelected = selected.filter((item) => item !== tag);
+    setSelected(newSelected);
+    onChange(newSelected);
+  };
 
-  const selectedCollectionObj = collections.find(
-    (c) => c.id === (selected[0] || value),
+  const selectedCollections = collections.filter((c) =>
+    selected.includes(c.id),
   );
 
   return (
     <div>
-      <Autocomplete
-        options={filteredOptions}
-        selected={selected}
-        onSelect={handleSelect}
-        textField={textField}
-        allowMultiple={false}
-      />
-      {(selected[0] || value) && selectedCollectionObj && (
-        <div className="status-badge" style={{ marginTop: 8 }}>
-          <Text as="p" variant="bodySm" tone="subdued">
-            ✓ Campaign will show on all products in this collection:{" "}
-            <b>{selectedCollectionObj.title}</b>
-          </Text>
+      <Combobox
+        activator={
+          <Combobox.TextField
+            prefix="Collections"
+            onChange={setInputValue}
+            label="Select collections"
+            value={inputValue}
+            placeholder="Search collections"
+            autoComplete="off"
+          />
+        }
+      >
+        <Listbox onSelect={handleSelect}>
+          {filteredOptions.map((option) => (
+            <Listbox.Option
+              key={option.value}
+              value={option.value}
+              selected={selected.includes(option.value)}
+            >
+              {option.label}
+            </Listbox.Option>
+          ))}
+        </Listbox>
+      </Combobox>
+
+      {selectedCollections.length > 0 && (
+        <div style={{ marginTop: "8px" }}>
+          {selectedCollections.map((collection) => (
+            <Tag key={collection.id} onRemove={() => removeTag(collection.id)}>
+              {collection.title}
+            </Tag>
+          ))}
         </div>
       )}
     </div>

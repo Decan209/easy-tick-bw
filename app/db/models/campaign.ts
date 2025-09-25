@@ -28,7 +28,7 @@ const CampaignSchema: Schema = new Schema(
       default: ICampaignPlacement.product,
     },
 
-    selectedCollectionId: { type: String, default: null },
+    selectedCollections: [String],
     targetProducts: [String],
 
     selectedVariantId: { type: String, default: null },
@@ -52,6 +52,9 @@ const CampaignSchema: Schema = new Schema(
     padding: { type: Number, default: 16, min: 0, max: 100 },
     borderRadius: { type: Number, default: 8, min: 0, max: 100 },
     imageSize: { type: Number, default: 50, min: 20, max: 100 },
+
+    images: [String],
+    shopifyDescription: { type: String, default: null },
 
     metadata: { type: String, default: null },
 

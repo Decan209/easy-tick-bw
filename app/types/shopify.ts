@@ -4,6 +4,7 @@ export interface ShopifyProduct {
   handle: string;
   images: Array<{ url: string; altText?: string }>;
   variants: IShopifyVariant[];
+  description: string;
 }
 
 export interface IShopifyVariant {
@@ -26,7 +27,7 @@ export interface IFormData {
   status: "Active" | "Draft";
   placement: "product" | "cart" | "home";
   targetType: string;
-  selectedCollection: string;
+  selectedCollections: string[];
   selectedProducts: string[];
   selectedVariant: string;
   selectedProduct: string;
@@ -52,4 +53,6 @@ export interface IFormData {
   fontSize: number;
   fontColor: string;
   fontWeight: string;
+  shopifyDescription: string;
+  images: string[];
 }
