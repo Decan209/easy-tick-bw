@@ -113,11 +113,10 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
     targetProducts.push(String(form.get(`targetProducts[${i}]`)));
   }
 
-  const selectedVariant = String(form.get("selectedVariant") || "");
-  const selectedProduct = String(form.get("selectedProduct") || "");
+  const selectedVariantId = String(form.get("selectedVariantId") || "");
+  const selectedProductHandle = String(form.get("selectedProductHandle") || "");
   const heading = String(form.get("heading") || "");
   const description = String(form.get("description") || "");
-  const imageUrlInput = String(form.get("imageUrl") || "");
 
   const showPrice = form.get("showPrice") === "on";
   const showImage = form.get("showImage") === "on";
@@ -163,44 +162,6 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   const fontColor = String(form.get("fontColor") || "#000000");
   const fontWeight = String(form.get("fontWeight") || "normal");
 
-  const price = String(form.get("price") || "");
-
-  let productImageUrl: string | null = imageUrlInput || null;
-
-  const selectedProductDataStr = String(
-    form.get("selectedProductData") || "{}",
-  );
-  const selectedVariantDataStr = String(
-    form.get("selectedVariantData") || "{}",
-  );
-  let selectedProductData: ShopifyProduct | null = null;
-  let selectedVariantData: IShopifyVariant | null = null;
-
-  try {
-    selectedProductData = JSON.parse(selectedProductDataStr);
-    selectedVariantData = JSON.parse(selectedVariantDataStr);
-  } catch (e) {
-    console.error("Error parsing selected data:", e);
-  }
-
-  const finalPrice = price || selectedVariantData?.price || null;
-
-  if (
-    selectedVariantData &&
-    !productImageUrl &&
-    selectedProductData?.images?.[0]?.url
-  ) {
-    productImageUrl = selectedProductData.images[0].url;
-  }
-
-  let images: string[] = [];
-  let shopifyDescription: string | null = null;
-
-  if (selectedProductData) {
-    images = selectedProductData.images?.map((img: any) => img.url) || [];
-    shopifyDescription = selectedProductData.description || "";
-  }
-
   try {
     await updateCampaignById(params.id, {
       title,
@@ -210,18 +171,10 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
       selectedCollections:
         selectedCollections.length > 0 ? selectedCollections : [],
       targetProducts: targetProducts.length > 0 ? targetProducts : [],
-      selectedVariantId: selectedVariant || null,
-      selectedProductId: selectedProduct || null,
-      selectedProductData: selectedProductData
-        ? JSON.stringify(selectedProductData)
-        : null,
-      selectedVariantData: selectedVariantData
-        ? JSON.stringify(selectedVariantData)
-        : null,
+      selectedVariantId: selectedVariantId || null,
+      selectedProductHandle: selectedProductHandle || null,
       heading: heading || null,
       description: description || null,
-      imageUrl: productImageUrl,
-      price: finalPrice,
       showPrice,
       showImage,
       preCheck,
@@ -231,8 +184,6 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
       padding,
       borderRadius,
       imageSize,
-      images,
-      shopifyDescription,
       metadata: JSON.stringify({
         checkboxStyle: {
           backgroundColor: checkboxBackgroundColor,
@@ -297,14 +248,10 @@ export default function CampaignDetail() {
     targetType: campaign.targetType || "all",
     selectedCollections: campaign.selectedCollections || [],
     selectedProducts: parsedTargetProducts,
-    selectedVariant: campaign.selectedVariantId || "",
-    selectedProduct: campaign.selectedProductId || "",
-    selectedProductData: campaign.selectedProductData || "",
-    selectedVariantData: campaign.selectedVariantData || "",
-    price: campaign.price || "",
+    selectedVariantId: campaign.selectedVariantId || "",
+    selectedProductHandle: campaign.selectedProductHandle || "",
     heading: campaign.heading || "",
-    description: campaign.description || "Check out this great product!",
-    imageUrl: campaign.imageUrl || "",
+    description: campaign.description || "",
     showPrice: campaign.showPrice,
     showImage: campaign.showImage,
     preCheck: campaign.preCheck,
@@ -323,8 +270,6 @@ export default function CampaignDetail() {
     fontSize: metadata?.fontSettings?.size || 14,
     fontColor: metadata?.fontSettings?.color || "#000000",
     fontWeight: metadata?.fontSettings?.weight || "normal",
-    images: campaign.images || [],
-    shopifyDescription: campaign.shopifyDescription || "",
   });
 
   const [productSelectorOpen, setProductSelectorOpen] = useState(false);
@@ -336,32 +281,12 @@ export default function CampaignDetail() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const selectedVariantData = (() => {
-    try {
-      return formData.selectedVariantData
-        ? JSON.parse(formData.selectedVariantData)
-        : null;
-    } catch {
-      return null;
-    }
-  })();
-
   const handleProductSelect = (
     product: ShopifyProduct,
     variant: IShopifyVariant,
   ) => {
-    updateField("selectedProduct", product.id);
-    updateField("selectedVariant", variant.id);
-    updateField("selectedProductData", JSON.stringify(product));
-    updateField("selectedVariantData", JSON.stringify(variant));
-    updateField("price", variant.price);
-
-    updateField("images", product.images?.map((img: any) => img.url) || []);
-    updateField("shopifyDescription", product.description || "");
-
-    if (product.images?.[0]?.url) {
-      updateField("imageUrl", product.images[0].url);
-    }
+    updateField("selectedProductHandle", product.handle);
+    updateField("selectedVariantId", variant.id);
 
     if (product.title) {
       updateField("heading", product.title);
@@ -466,7 +391,6 @@ export default function CampaignDetail() {
             formData={formData}
             updateField={updateField}
             collections={collections}
-            selectedVariantData={selectedVariantData}
             productSelectorOpen={productSelectorOpen}
             setProductSelectorOpen={setProductSelectorOpen}
             handleProductSelect={handleProductSelect}

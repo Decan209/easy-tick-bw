@@ -19,7 +19,9 @@
     uncheckedVariants: [],
     cartCache: null,
     cartCacheAt: 0,
-    LOCAL_STORAGE_UNCHECKED_KEY: "easyTickUncheckedVariants",
+    LOCAL_STORAGE_UNCHECKED_KEY:
+      "easyTickUncheckedVariants_" +
+      (window.Shopify && window.Shopify.shop ? window.Shopify.shop : ""),
     activeColor: "#FF9924",
 
     init(widgetId) {
@@ -37,24 +39,12 @@
           Math.min(20, parseInt(el.dataset.maxItems || "3", 10)),
         ),
         proxyPath: el.dataset.proxyPath || "/apps/easy-tick/campaigns",
-        variantPrices: {},
         shop: el.dataset.shop || "",
       };
 
       this.loadUncheckedFromStorage();
-      this.collectVariantPrices();
       this.interceptFormSubmissions();
       this.loadCampaigns();
-    },
-
-    collectVariantPrices() {
-      document
-        .querySelectorAll("[data-variant-id][data-variant-price]")
-        .forEach((node) => {
-          const id = toNumericId(node.getAttribute("data-variant-id"));
-          const price = node.getAttribute("data-variant-price");
-          if (id && price) this.cfg.variantPrices[id] = price;
-        });
     },
 
     getSelectedVariants() {
@@ -65,19 +55,24 @@
 
     addVariantsToFormData(formData, selectedVariants) {
       if (selectedVariants.length === 0) return formData;
+
+      const mainVariantId = formData.get("id");
+      const mainQuantity = formData.get("quantity") || 1;
+
+      formData.delete("id");
+      formData.delete("quantity");
+
       selectedVariants.forEach((item, index) => {
         formData.append(`items[${index}][id]`, item.variantId);
         formData.append(`items[${index}][quantity]`, item.quantity || 1);
       });
-      const mainVariantId = formData.get("id");
-      const mainQuantity = formData.get("quantity") || 1;
+
       if (mainVariantId) {
-        formData.append(`items[${selectedVariants.length}][id]`, mainVariantId);
-        formData.append(
-          `items[${selectedVariants.length}][quantity]`,
-          mainQuantity,
-        );
+        const i = selectedVariants.length;
+        formData.append(`items[${i}][id]`, mainVariantId);
+        formData.append(`items[${i}][quantity]`, mainQuantity);
       }
+
       return formData;
     },
 
@@ -97,35 +92,56 @@
         const form = e.target;
         if (form.matches('[action*="/cart/add"], [action*="/cart/change"]')) {
           e.preventDefault();
-          const formData = new FormData(form);
-          this.submitFormWithUpsells(form, formData);
+          this.submitFormWithUpsells(form);
         }
       });
     },
 
-    async submitFormWithUpsells(form, formData) {
+    async submitFormWithUpsells(form, shouldSubmit = true) {
       try {
-        const selectedVariants = this.getSelectedVariants();
-        const updatedFormData = this.addVariantsToFormData(
-          formData,
-          selectedVariants,
+        Array.from(form.querySelectorAll('input[name^="items["]')).forEach(
+          (input) => input.remove(),
         );
-        const response = await fetch(form.action, {
-          method: form.method || "POST",
-          body: updatedFormData,
-          headers: {
-            "X-Requested-With": "XMLHttpRequest",
-            Accept: "application/json",
-          },
+
+        const selectedVariants = this.getSelectedVariants();
+        const mainQuantity =
+          form.querySelector('[name="quantity"]')?.value || 1;
+        selectedVariants.forEach((item, index) => {
+          form.appendChild(
+            Object.assign(document.createElement("input"), {
+              type: "hidden",
+              name: `items[${index}][id]`,
+              value: item.variantId,
+            }),
+          );
+          form.appendChild(
+            Object.assign(document.createElement("input"), {
+              type: "hidden",
+              name: `items[${index}][quantity]`,
+              value: mainQuantity,
+            }),
+          );
         });
-        if (!response.ok) throw new Error("Form submission failed");
-        this.invalidateCartCache();
-        if (this.cfg.pageType === "product") {
-          this.updateCartUI(await this.getCart());
-        }
+        if (shouldSubmit) form.submit();
       } catch (error) {
-        console.error("Error submitting form with upsells:", error);
+        console.error("Error preparing upsell data:", error);
       }
+    },
+
+    stripHtml(html) {
+      if (!html) return "";
+      const tmp = document.createElement("DIV");
+      tmp.innerHTML = html;
+      return tmp.textContent || tmp.innerText || "";
+    },
+
+    formatMoney(amount, currency) {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
     },
 
     async loadCampaigns() {
@@ -144,7 +160,6 @@
           credentials: "same-origin",
           headers: { Accept: "application/json" },
         });
-        console.log({ res });
         if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
         const data = await res.json();
         const campaigns = data?.campaigns || [];
@@ -152,7 +167,45 @@
           this.hideWidget();
           return;
         }
-        this.renderOffers(campaigns);
+
+        const enrichedCampaigns = await Promise.all(
+          campaigns.map(async (campaign) => {
+            if (campaign.selectedProductHandle) {
+              try {
+                const productRes = await fetch(
+                  `/products/${campaign.selectedProductHandle}.js`,
+                );
+
+                if (productRes.ok) {
+                  const productData = await productRes.json();
+                  const selectedVariant = productData.variants?.find(
+                    (v) => v.id === toNumericId(campaign.selectedVariantId),
+                  );
+                  return {
+                    ...campaign,
+                    images: productData.images || [],
+                    price: selectedVariant
+                      ? (selectedVariant.price / 100).toFixed(2)
+                      : campaign.price,
+                    shopifyDescription: productData.description
+                      ? this.stripHtml(productData.description)
+                      : campaign.shopifyDescription,
+                    title: productData.title || campaign.title,
+                  };
+                }
+              } catch (error) {
+                console.error(
+                  "Error fetching product data for handle:",
+                  campaign.selectedProductHandle,
+                  error,
+                );
+              }
+            }
+            return campaign;
+          }),
+        );
+
+        this.renderOffers(enrichedCampaigns);
       } catch (e) {
         console.error("Error loading campaigns:", e);
         this.hideWidget();
@@ -165,7 +218,7 @@
     },
 
     async renderOffers(offers) {
-      const { el, variantPrices } = this.cfg;
+      const { el } = this.cfg;
       el.style.display = "";
       this.offers = offers
         .map((offer) => ({
@@ -248,12 +301,8 @@
             (item) => toNumericId(item.variant_id) === offer.variantId,
           );
           if (!isInCart) {
-            try {
-              await this.addCampaignToCart(offer.variantId);
-              cartData = await this.getCart();
-            } catch (error) {
-              console.error("Error adding cart pre-checked offer:", error);
-            }
+            await this.addCampaignToCart(offer.variantId);
+            cartData = await this.getCart();
           }
         }
         this.updateCartUI(cartData);
@@ -262,7 +311,7 @@
       const html = `
         <div class="tick-one-upsell-list" style="margin: 16px 0;">
           ${this.offers
-            .map((offer) => this.renderOffer(offer, variantPrices, cartData))
+            .map((offer) => this.renderOffer(offer, cartData))
             .join("")}
         </div>
       `;
@@ -278,32 +327,44 @@
     setupCheckboxEvents() {
       if (!this.cfg?.el) return;
       this.selectedVariantIds = [];
+      const form = document.querySelector("form");
       this.cfg.el.querySelectorAll(".tick-one-checkbox").forEach((cb) => {
         const variantId = toNumericId(cb.dataset.variantId);
         if (cb.checked && !this.selectedVariantIds.includes(variantId)) {
           this.selectedVariantIds.push(variantId);
+          if (this.cfg.pageType !== "cart" && form) {
+            this.submitFormWithUpsells(form, false);
+          }
         }
         cb.addEventListener("change", async () => {
-          const previousState = cb.checked;
-          try {
-            if (cb.checked) {
-              await this.addCampaignToCart(variantId);
-              const index = this.uncheckedVariants.indexOf(variantId);
-              if (index > -1) this.uncheckedVariants.splice(index, 1);
-              this.saveUncheckedToStorage();
-            } else {
-              await this.removeCampaignFromCart(variantId);
-              if (!this.uncheckedVariants.includes(variantId)) {
-                this.uncheckedVariants.push(variantId);
-              }
-              this.saveUncheckedToStorage();
+          if (cb.checked) {
+            if (!this.selectedVariantIds.includes(variantId)) {
+              this.selectedVariantIds.push(variantId);
             }
-          } catch (error) {
-            console.error("Error updating cart:", error);
-            cb.checked = previousState;
+            if (this.cfg.pageType === "cart") {
+              await this.addCampaignToCart(variantId);
+            } else if (form) {
+              this.submitFormWithUpsells(form, false);
+            }
+          } else {
+            this.selectedVariantIds = this.selectedVariantIds.filter(
+              (id) => id !== variantId,
+            );
+            if (this.cfg.pageType === "cart") {
+              await this.removeCampaignFromCart(variantId);
+            } else if (form) {
+              this.submitFormWithUpsells(form, false);
+            }
           }
         });
       });
+
+      const qtyInput = form?.querySelector('[name="quantity"]');
+      if (qtyInput) {
+        qtyInput.addEventListener("change", () => {
+          this.submitFormWithUpsells(form, false);
+        });
+      }
     },
 
     setupImageModalEvents() {
@@ -320,11 +381,11 @@
       });
     },
 
-    renderOffer(offer, variantPrices, cartData) {
+    renderOffer(offer, cartData) {
       const variantId = toNumericId(
         offer.selectedVariantId || offer.variantId || "",
       );
-      const price = variantPrices[variantId] || offer.price || "";
+      const price = offer.price || "";
       const isInCart = cartData.items.some(
         (item) => toNumericId(item.variant_id) === variantId,
       );
@@ -337,12 +398,17 @@
       const metadata = offer.metadata || {};
       const checkboxStyle = metadata.checkboxStyle || {};
       const fontSettings = metadata.fontSettings || {};
-
       const priceColor = checkboxStyle.activeColor || "#FF9924";
 
+      const currency =
+        window.Shopify &&
+        window.Shopify.currency &&
+        window.Shopify.currency.active
+          ? window.Shopify.currency.active
+          : "USD";
       const priceHtml =
         offer.showPrice && price
-          ? `<span class="tick-one-price" style="color: ${priceColor}; font-weight: 700; background: ${priceColor}15; padding: 2px 6px; border-radius: 4px;">(+ $${price})</span>`
+          ? `<span class="tick-one-price" style="color: ${priceColor}; font-weight: 700; background: ${priceColor}15; padding: 2px 6px; border-radius: 4px;">(+ ${this.formatMoney(Number(price), currency)})</span>`
           : "";
 
       const cardStyle = `
@@ -381,55 +447,59 @@
         font-weight: ${fontSettings.weight || "normal"};
       `;
 
-      const imagesJson = JSON.stringify(
-        offer.images || [offer.imageUrl],
-      ).replace(/'/g, "\\'");
+      const images = offer.images || [];
+      const imagesJson = JSON.stringify(images).replace(/'/g, "\\'");
 
-      const imageHtml = offer.imageUrl
-        ? `<img src="${this.escapeAttr(offer.imageUrl)}" 
-         alt="${this.escapeAttr(offer.heading || offer.title)}" 
-         class="tick-one-image-preview"
-         data-image-src="${this.escapeAttr(offer.imageUrl)}"
-         data-title="${this.escapeAttr(offer.heading || offer.title)}"
-         data-images="${this.escapeAttr(imagesJson)}"
-         data-active-color="${this.escapeAttr(priceColor)}"
-         data-description="${this.escapeAttr(offer.shopifyDescription || "")}"
-         style="${imageStyle}"
-         onmouseover="this.style.opacity='0.8'"
-         onmouseout="this.style.opacity='1'"
-         title="Click to preview">`
-        : "";
+      const imageUrl = images[0] ? "https:" + images[0] : offer.imageUrl;
+      const imageHtml =
+        imageUrl && offer.showImage
+          ? `<img src="${this.escapeAttr(imageUrl)}" 
+        alt="${this.escapeAttr(offer.heading || offer.title)}" 
+        class="tick-one-image-preview"
+        data-image-src="${this.escapeAttr(imageUrl)}"
+        data-title="${this.escapeAttr(offer.heading || offer.title)}"
+        data-images="${this.escapeAttr(imagesJson)}"
+        data-active-color="${this.escapeAttr(priceColor)}"
+        data-description="${this.escapeAttr(offer.shopifyDescription || "")}"
+        style="${imageStyle}"
+        onmouseover="this.style.opacity='0.8'"
+        onmouseout="this.style.opacity='1'"
+        title="Click to preview">`
+          : "";
+
+      const title = offer.heading || offer.title || "Product Title";
+      const description = offer.description || "";
 
       return `
-          <div class="tick-one-upsell-card" 
-            style="${cardStyle}"
-          >
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <input type="checkbox"
-                class="tick-one-checkbox"
-                data-variant-id="${variantId}"
-                data-offer-id="${offer.id}"
-                ${checked}
-                style="${checkboxStyleInline}"
-                onclick="event.stopPropagation()"
-              >
-              ${offer.showImage ? imageHtml : ""}
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                  <span style="${fontStyle}; font-weight: 600;">
-                    ${this.escape(offer.heading || offer.title)}
-                  </span>
-                  ${priceHtml}
-                </div>
-                  ${
-                    offer.description
-                      ? `<div style="${fontStyle}; opacity: 0.8; font-size: ${(fontSettings.size || 14) - 1}px; text-align: left;">
-                        ${this.escape(offer.description)}
-                      </div>`
-                      : ""
-                  }
+        <div class="tick-one-upsell-card" 
+          style="${cardStyle}"
+        >
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <input type="checkbox"
+              class="tick-one-checkbox"
+              data-variant-id="${variantId}"
+              data-offer-id="${offer.id}"
+              ${checked}
+              style="${checkboxStyleInline}"
+              onclick="event.stopPropagation()"
+            >
+            ${imageHtml}
+            <div style="flex: 1;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="${fontStyle}; font-weight: 600;">
+                  ${this.escape(title)}
+                </span>
+                ${priceHtml}
               </div>
+              ${
+                description
+                  ? `<div style="${fontStyle}; opacity: 0.8; font-size: ${(fontSettings.size || 14) - 1}px; text-align: left;">
+                    ${this.escape(description)}
+                  </div>`
+                  : ""
+              }
             </div>
+          </div>
         </div>
       `;
     },

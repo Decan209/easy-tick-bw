@@ -91,6 +91,7 @@ export const loader = async ({ request }: any) => {
           targetType: campaign.targetType,
           selectedCollections: campaign.selectedCollections || [],
           targetProducts: campaign.targetProducts || [],
+          selectedProductHandle: campaign.selectedProductHandle,
           selectedVariantId: campaign.selectedVariantId,
           selectedProductId: campaign.selectedProductId,
           showPrice: campaign.showPrice,
