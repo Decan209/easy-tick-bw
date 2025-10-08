@@ -1,10 +1,19 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { useNavigation, useLoaderData, useActionData } from "@remix-run/react";
+import {
+  useNavigation,
+  useLoaderData,
+  useActionData,
+  useFetcher,
+} from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { Page, Layout, Spinner } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
-import { fetchProducts, fetchAllCollections } from "../hooks/product";
+import {
+  fetchProducts,
+  fetchAllCollections,
+  fetchProductByHandle,
+} from "../hooks/product";
 import CampaignForm from "../components/CampaignForm";
 import { CampaignPreview } from "../components/CampaignPreview";
 import { createCampaign } from "../db/actions/campaign";
@@ -49,6 +58,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const form = await request.formData();
 
+  if (form.get("_action") === "fetchProduct") {
+    const handle = String(form.get("handle") || "");
+    if (!handle) {
+      return json({ error: "Handle required" }, { status: 400 });
+    }
+    const { admin } = await authenticate.admin(request);
+    const product = await fetchProductByHandle(admin, handle);
+    return json({ product });
+  }
+
   const title = String(form.get("title") || "").trim();
   if (!title) {
     return json({ error: "Title is required" }, { status: 400 });
@@ -71,11 +90,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     targetProducts.push(String(form.get(`targetProducts[${i}]`)));
   }
 
-  const selectedVariant = String(form.get("selectedVariant") || "");
-  const selectedProduct = String(form.get("selectedProduct") || "");
+  const selectedVariantId = String(form.get("selectedVariantId") || "");
+  const selectedProductHandle = String(form.get("selectedProductHandle") || "");
   const heading = String(form.get("heading") || "");
   const description = String(form.get("description") || "");
-  const imageUrlInput = String(form.get("imageUrl") || "");
 
   const showPrice = form.get("showPrice") === "on";
   const showImage = form.get("showImage") === "on";
@@ -121,44 +139,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const fontColor = String(form.get("fontColor") || "#000000");
   const fontWeight = String(form.get("fontWeight") || "normal");
 
-  const price = String(form.get("price") || "");
-
-  let productImageUrl: string | null = imageUrlInput || null;
-
-  const selectedProductDataStr = String(
-    form.get("selectedProductData") || "{}",
-  );
-  const selectedVariantDataStr = String(
-    form.get("selectedVariantData") || "{}",
-  );
-  let selectedProductData: ShopifyProduct | null = null;
-  let selectedVariantData: IShopifyVariant | null = null;
-
-  try {
-    selectedProductData = JSON.parse(selectedProductDataStr);
-    selectedVariantData = JSON.parse(selectedVariantDataStr);
-  } catch (e) {
-    console.error("Error parsing selected data:", e);
-  }
-
-  const finalPrice = price || selectedVariantData?.price || null;
-
-  if (
-    selectedVariantData &&
-    !productImageUrl &&
-    selectedProductData?.images?.[0]?.url
-  ) {
-    productImageUrl = selectedProductData.images[0].url;
-  }
-
-  let images: string[] = [];
-  let shopifyDescription: string | null = null;
-
-  if (selectedProductData) {
-    images = selectedProductData.images?.map((img: any) => img.url) || [];
-    shopifyDescription = selectedProductData.description || "";
-  }
-
   try {
     await createCampaign({
       shop: session.shop,
@@ -169,18 +149,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       selectedCollections:
         selectedCollections.length > 0 ? selectedCollections : [],
       targetProducts: targetProducts.length > 0 ? targetProducts : [],
-      selectedVariantId: selectedVariant || null,
-      selectedProductId: selectedProduct || null,
-      selectedProductData: selectedProductData
-        ? JSON.stringify(selectedProductData)
-        : null,
-      selectedVariantData: selectedVariantData
-        ? JSON.stringify(selectedVariantData)
-        : null,
+      selectedVariantId: selectedVariantId || null,
+      selectedProductHandle: selectedProductHandle || null,
       heading: heading || null,
       description: description || null,
-      imageUrl: productImageUrl,
-      price: finalPrice,
       showPrice,
       showImage,
       preCheck,
@@ -190,8 +162,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       padding,
       borderRadius,
       imageSize,
-      images,
-      shopifyDescription,
       metadata: JSON.stringify({
         checkboxStyle: {
           backgroundColor: checkboxBackgroundColor,
@@ -247,14 +217,10 @@ export default function NewCampaign() {
     targetType: "all",
     selectedCollections: [] as string[],
     selectedProducts: [] as string[],
-    selectedVariant: "",
-    selectedProduct: "",
-    selectedProductData: "",
-    selectedVariantData: "",
-    price: "",
+    selectedVariantId: "",
+    selectedProductHandle: "",
     heading: "",
-    description: "Check out this great product!",
-    imageUrl: "",
+    description: "",
     showPrice: true,
     showImage: true,
     preCheck: false,
@@ -272,44 +238,43 @@ export default function NewCampaign() {
     fontSize: 14,
     fontColor: "#000000",
     fontWeight: "normal",
-    images: [] as string[],
-    shopifyDescription: "",
   });
 
   const [productSelectorOpen, setProductSelectorOpen] = useState(false);
   const [targetProductSelectorOpen, setTargetProductSelectorOpen] =
     useState(false);
 
+  const [productData, setProductData] = useState<any>(null);
+
+  const fetcher = useFetcher<{ product?: ShopifyProduct }>();
+
+  useEffect(() => {
+    if (formData.selectedProductHandle) {
+      fetcher.submit(
+        { _action: "fetchProduct", handle: formData.selectedProductHandle },
+        { method: "post" },
+      );
+    } else {
+      setProductData(null);
+    }
+  }, [formData.selectedProductHandle]);
+
+  useEffect(() => {
+    if (fetcher.data?.product) {
+      setProductData(fetcher.data.product);
+    }
+  }, [fetcher.data]);
+
   const updateField = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
-
-  const selectedVariantData = (() => {
-    try {
-      return formData.selectedVariantData
-        ? JSON.parse(formData.selectedVariantData)
-        : null;
-    } catch {
-      return null;
-    }
-  })();
 
   const handleProductSelect = (
     product: ShopifyProduct,
     variant: IShopifyVariant,
   ) => {
-    updateField("selectedProduct", product.id);
-    updateField("selectedVariant", variant.id);
-    updateField("selectedProductData", JSON.stringify(product));
-    updateField("selectedVariantData", JSON.stringify(variant));
-    updateField("price", variant.price);
-
-    updateField("images", product.images?.map((img: any) => img.url) || []);
-    updateField("shopifyDescription", product.description || "");
-
-    if (product.images?.[0]?.url) {
-      updateField("imageUrl", product.images[0].url);
-    }
+    updateField("selectedProductHandle", product.handle);
+    updateField("selectedVariantId", variant.id);
 
     if (product.title) {
       updateField("heading", product.title);
@@ -373,7 +338,6 @@ export default function NewCampaign() {
             formData={formData}
             updateField={updateField}
             collections={collections}
-            selectedVariantData={selectedVariantData}
             productSelectorOpen={productSelectorOpen}
             setProductSelectorOpen={setProductSelectorOpen}
             handleProductSelect={handleProductSelect}
@@ -390,7 +354,7 @@ export default function NewCampaign() {
         </Layout.Section>
 
         <Layout.Section variant="oneHalf">
-          <CampaignPreview formData={formData} />
+          <CampaignPreview formData={formData} productData={productData} />
         </Layout.Section>
       </Layout>
     </Page>

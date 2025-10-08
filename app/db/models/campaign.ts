@@ -31,6 +31,7 @@ const CampaignSchema: Schema = new Schema(
     selectedCollections: [String],
     targetProducts: [String],
 
+    selectedProductHandle: { type: String, default: null },
     selectedVariantId: { type: String, default: null },
     selectedProductId: { type: String, default: null },
 
@@ -39,10 +40,8 @@ const CampaignSchema: Schema = new Schema(
 
     heading: { type: String, default: null },
     description: { type: String },
-    imageUrl: { type: String, default: null },
     showImage: { type: Boolean, default: true },
 
-    price: { type: String, default: null },
     showPrice: { type: Boolean, default: true },
     preCheck: { type: Boolean, default: false },
 
@@ -53,9 +52,7 @@ const CampaignSchema: Schema = new Schema(
     borderRadius: { type: Number, default: 8, min: 0, max: 100 },
     imageSize: { type: Number, default: 50, min: 20, max: 100 },
 
-    images: [String],
     shopifyDescription: { type: String, default: null },
-
     metadata: { type: String, default: null },
 
     createdAt: { type: Date, default: Date.now },

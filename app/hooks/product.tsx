@@ -235,3 +235,60 @@ export function getProductsWithInventory(
     product.variants.some((variant) => variant.inventoryQuantity >= minQty),
   );
 }
+
+export async function fetchProductByHandle(admin: any, handle: string) {
+  try {
+    const response: Response = await admin.graphql(
+      `
+      query GetProductByHandle($handle: String!) {
+        productByHandle(handle: $handle) {
+          id
+          title
+          handle
+          description
+          images(first: 5) {
+            nodes {
+              url
+              altText
+            }
+          }
+          variants(first: 100) {
+            nodes {
+              id
+              title
+              price
+              compareAtPrice
+              inventoryQuantity
+              selectedOptions {
+                name
+                value
+              }
+            }
+          }
+        }
+      }
+      `,
+      {
+        variables: { handle },
+      },
+    );
+
+    const data = await response.json();
+    if (data.errors) {
+      console.error("GraphQL errors:", data.errors);
+      return null;
+    }
+
+    const product = data.data?.productByHandle;
+    if (!product) return null;
+
+    return {
+      ...product,
+      images: product.images?.nodes || [],
+      variants: product.variants?.nodes || [],
+    };
+  } catch (error) {
+    console.error("Error in fetchProductByHandle:", error);
+    return null;
+  }
+}

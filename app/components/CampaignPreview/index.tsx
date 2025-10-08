@@ -5,9 +5,13 @@ import "./style.css";
 
 interface CampaignPreviewProps {
   formData: IFormData;
+  productData?: any;
 }
 
-export function CampaignPreview({ formData }: CampaignPreviewProps) {
+export function CampaignPreview({
+  formData,
+  productData,
+}: CampaignPreviewProps) {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -19,10 +23,7 @@ export function CampaignPreview({ formData }: CampaignPreviewProps) {
   }, [imageModalOpen]);
 
   const hasData =
-    formData.heading ||
-    formData.description ||
-    formData.imageUrl ||
-    formData.price;
+    formData.heading || formData.description || formData.selectedProductHandle;
 
   if (!hasData) {
     return (
@@ -40,7 +41,13 @@ export function CampaignPreview({ formData }: CampaignPreviewProps) {
     );
   }
 
-  const images = formData.images || [formData.imageUrl].filter(Boolean);
+  const selectedVariant = productData?.variants?.find(
+    (v: any) => v.id === formData.selectedVariantId,
+  );
+  const price = selectedVariant?.price;
+  const images = productData?.images?.map((i: any) => i.url) || [];
+  const imageUrl = images[0];
+  const shopifyDescription = productData?.description;
   const activeColor = formData.checkboxActiveColor || "#0066CC";
 
   const prevImage = () => {
@@ -94,9 +101,9 @@ export function CampaignPreview({ formData }: CampaignPreviewProps) {
                 onClick={(e) => e.stopPropagation()}
               />
 
-              {formData.imageUrl && formData.showImage && (
+              {imageUrl && formData.showImage && (
                 <img
-                  src={formData.imageUrl}
+                  src={imageUrl}
                   alt={formData.heading || "Product Image"}
                   className="tick-one-image"
                   style={{
@@ -117,9 +124,9 @@ export function CampaignPreview({ formData }: CampaignPreviewProps) {
                       fontWeight: formData.fontWeight || "normal",
                     }}
                   >
-                    {formData.heading || "Product Title"}
+                    {formData.heading || productData?.title || "Product Title"}
                   </span>
-                  {formData.showPrice && formData.price && (
+                  {formData.showPrice && price && (
                     <span
                       className="tick-one-price"
                       style={{
@@ -127,7 +134,7 @@ export function CampaignPreview({ formData }: CampaignPreviewProps) {
                         fontSize: `${formData.fontSize || 14}px`,
                       }}
                     >
-                      (+ ${formData.price})
+                      (+ ${price})
                     </span>
                   )}
                 </div>
@@ -160,7 +167,7 @@ export function CampaignPreview({ formData }: CampaignPreviewProps) {
           >
             <div className="image-modal-header">
               <h3 className="image-modal-title">
-                {formData.heading || "Product Title"}
+                {formData.heading || productData?.title || "Product Title"}
               </h3>
               <button
                 className="image-modal-close"
@@ -171,10 +178,8 @@ export function CampaignPreview({ formData }: CampaignPreviewProps) {
             </div>
 
             <div className="image-modal-body">
-              {formData.shopifyDescription && (
-                <p className="image-modal-description">
-                  {formData.shopifyDescription}
-                </p>
+              {shopifyDescription && (
+                <p className="image-modal-description">{shopifyDescription}</p>
               )}
 
               <div className="image-carousel">

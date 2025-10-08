@@ -30,10 +30,6 @@ interface CampaignFormProps {
     handle: string;
     description: string;
   }>;
-  selectedVariantData: {
-    product: { title: string; images?: Array<{ url: string }> };
-    variant: { title: string; price: string; inventoryQuantity: number };
-  } | null;
   productSelectorOpen: boolean;
   setProductSelectorOpen: (open: boolean) => void;
   handleProductSelect: (
@@ -60,7 +56,6 @@ export default function CampaignForm({
   formData,
   updateField,
   collections,
-  selectedVariantData,
   productSelectorOpen,
   setProductSelectorOpen,
   handleProductSelect,
@@ -163,10 +158,8 @@ export default function CampaignForm({
               Upsell Product
             </Text>
             <Button onClick={() => setProductSelectorOpen(true)} fullWidth>
-              {selectedVariantData &&
-              selectedVariantData.product &&
-              selectedVariantData.variant
-                ? `${selectedVariantData.product.title} - ${selectedVariantData.variant.title} ($${selectedVariantData.variant.price})`
+              {formData.selectedProductHandle
+                ? `Product selected: ${formData.selectedProductHandle}`
                 : "Select upsell product variant"}
             </Button>
           </FormLayout>
@@ -194,29 +187,6 @@ export default function CampaignForm({
               autoComplete="off"
               placeholder="Description"
             />
-            <TextField
-              label="Image URL"
-              name="imageUrl"
-              value={formData.imageUrl}
-              onChange={(v) => updateField("imageUrl", v)}
-              autoComplete="off"
-              placeholder="https://... (optional custom image)"
-              helpText="Leave empty to use product image"
-            />
-
-            {!formData.imageUrl &&
-              selectedVariantData?.product?.images?.[0]?.url && (
-                <div style={{ marginTop: 8 }}>
-                  <img
-                    src={selectedVariantData.product.images[0].url}
-                    alt={selectedVariantData.product.title}
-                    className="form-image-preview"
-                  />
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Preview product image
-                  </Text>
-                </div>
-              )}
           </FormLayout>
         </Card>
 
@@ -380,23 +350,13 @@ export default function CampaignForm({
         />
         <input
           type="hidden"
-          name="selectedVariant"
-          value={formData.selectedVariant}
+          name="selectedVariantId"
+          value={formData.selectedVariantId}
         />
         <input
           type="hidden"
-          name="selectedProduct"
-          value={formData.selectedProduct}
-        />
-        <input
-          type="hidden"
-          name="selectedProductData"
-          value={formData.selectedProductData}
-        />
-        <input
-          type="hidden"
-          name="selectedVariantData"
-          value={formData.selectedVariantData}
+          name="selectedProductHandle"
+          value={formData.selectedProductHandle}
         />
 
         {Array.isArray(formData.selectedProducts) &&
@@ -477,8 +437,8 @@ export default function CampaignForm({
             handleProductSelect(product, variant);
             setProductSelectorOpen(false);
           }}
-          selectedProductId={formData.selectedProduct}
-          selectedVariantId={formData.selectedVariant}
+          selectedProductId={formData.selectedProductHandle}
+          selectedVariantId={formData.selectedVariantId}
           initialProducts={initialProducts}
           initialCursor={initialCursor}
           initialHasNextPage={initialHasNextPage}

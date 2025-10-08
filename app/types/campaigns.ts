@@ -27,19 +27,12 @@ export interface ICampaign {
   targetProducts?: string[];
 
   selectedVariantId?: string | null;
-  selectedProductId?: string | null;
-
-  selectedProductData?: string | null;
-  selectedVariantData?: string | null;
+  selectedProductHandle?: string | null;
 
   heading?: string | null;
   description?: string | null;
-  shopifyDescription?: string | null;
-  imageUrl?: string | null;
-  images: string[];
   showImage: boolean;
 
-  price?: string | null;
   showPrice: boolean;
   preCheck: boolean;
   showVariantSelector: boolean;

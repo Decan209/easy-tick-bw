@@ -29,18 +29,14 @@ export interface IFormData {
   targetType: string;
   selectedCollections: string[];
   selectedProducts: string[];
-  selectedVariant: string;
-  selectedProduct: string;
-  selectedProductData: string;
-  selectedVariantData: string;
+  selectedVariantId: string;
+  selectedProductHandle: string;
   heading: string;
   description: string;
-  imageUrl: string;
   showImage: boolean;
   showPrice: boolean;
   preCheck: boolean;
   backgroundColor: string;
-  price: string;
   borderColor: string;
   backgroundColorActive: string;
   padding: number;
@@ -53,6 +49,4 @@ export interface IFormData {
   fontSize: number;
   fontColor: string;
   fontWeight: string;
-  shopifyDescription: string;
-  images: string[];
 }
